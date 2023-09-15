@@ -14,6 +14,37 @@ import (
 // - 5:hello -> hello
 // - 10:hello12345 -> hello12345
 func decodeBencode(bencodedString string) (interface{}, error) {
+	firstDigit := rune(bencodedString[0])
+	if unicode.IsDigit(firstDigit) {
+		return decodeBencodeString(bencodedString)
+	} else if firstDigit == 'i' {
+		return decodeBencodedInt(bencodedString)
+	} else {
+		return "", fmt.Errorf("unrecognized format")
+	}
+}
+
+func decodeBencodedInt(bencodedString string) (interface{}, error) {
+	l := len(bencodedString)
+	if bencodedString[l-1] != 'e' {
+		return 0, fmt.Errorf("invalid integer format")
+	}
+	sign := bencodedString[1]
+	numPart := bencodedString[1 : l-1]
+	num, err := strconv.Atoi(numPart)
+	if err != nil {
+		return 0, err
+	}
+	if sign == '-' && num == 0 {
+		return 0, fmt.Errorf("negative zero not allowed")
+	} else if sign == '0' && num != 0 || num == 0 && l != 3 {
+		// catching the leading zeros except for exactly '0'
+		return 0, fmt.Errorf("leading zeros are not allowed")
+	}
+	return num, nil
+}
+
+func decodeBencodeString(bencodedString string) (interface{}, error) {
 	if unicode.IsDigit(rune(bencodedString[0])) {
 		var firstColonIndex int
 
