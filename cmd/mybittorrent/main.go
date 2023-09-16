@@ -23,17 +23,17 @@ func decodeBencode(bencodedString string) (interface{}, error) {
 		result, _, err := decodeBencodedInt(bencodedString)
 		return result, err
 	} else if firstDigit == 'l' {
-		result, _, err := decodeBencodeList(bencodedString)
+		result, _, err := decodeBencodeList(bencodedString, true)
 		return result, err
 	} else if firstDigit == 'd' {
-		result, _, err := decodeBencodeDict(bencodedString)
+		result, _, err := decodeBencodeDict(bencodedString, true)
 		return result, err
 	} else {
 		return "", fmt.Errorf("unrecognized format")
 	}
 }
 
-func decodeBencodeDict(bencodedString string) (interface{}, int, error) {
+func decodeBencodeDict(bencodedString string, isTopLevel bool) (interface{}, int, error) {
 	result := make(map[string]interface{})
 	keyMode := true
 
@@ -65,7 +65,7 @@ func decodeBencodeDict(bencodedString string) (interface{}, int, error) {
 				return nil, 0, fmt.Errorf("invalid key type")
 			}
 			// return nested list and its count
-			innerRes, innerCount, err = decodeBencodeList(bencodedString[currentIdx:l])
+			innerRes, innerCount, err = decodeBencodeList(bencodedString[currentIdx:l], false)
 			if err != nil {
 				return nil, 0, err
 			}
@@ -73,7 +73,7 @@ func decodeBencodeDict(bencodedString string) (interface{}, int, error) {
 			if keyMode {
 				return nil, 0, fmt.Errorf("invalid key type")
 			}
-			innerRes, innerCount, err = decodeBencodeDict(bencodedString[currentIdx:l])
+			innerRes, innerCount, err = decodeBencodeDict(bencodedString[currentIdx:l], false)
 			if err != nil {
 				return nil, 0, err
 			}
@@ -100,14 +100,19 @@ func decodeBencodeDict(bencodedString string) (interface{}, int, error) {
 
 	// check if list ends with an 'e'
 	if bencodedString[currentIdx] != 'e' {
-		return nil, 0, fmt.Errorf("invalid list format")
+		return nil, 0, fmt.Errorf("invalid dict format")
+	}
+
+	// if the dict is top level, the length must be checked to avoid extra trailing chars
+	if isTopLevel && currentIdx+1 != l {
+		return nil, 0, fmt.Errorf("invalid dict format (extra chars present)")
 	}
 
 	// currentIdx+1 will show the true length of the string-encoded list just parsed
 	return result, currentIdx + 1, nil
 }
 
-func decodeBencodeList(bencodedString string) (interface{}, int, error) {
+func decodeBencodeList(bencodedString string, isTopLevel bool) (interface{}, int, error) {
 	// parse integer or string
 	// move carret
 	// check location afterwards to make sure it's an 'e'
@@ -135,12 +140,12 @@ func decodeBencodeList(bencodedString string) (interface{}, int, error) {
 			}
 		} else if firstRune == 'l' {
 			// return nested list and its count
-			innerRes, innerCount, err = decodeBencodeList(bencodedString[currentIdx:l])
+			innerRes, innerCount, err = decodeBencodeList(bencodedString[currentIdx:l], false)
 			if err != nil {
 				return nil, 0, err
 			}
 		} else if firstRune == 'd' {
-			innerRes, innerCount, err = decodeBencodeDict(bencodedString[currentIdx:l])
+			innerRes, innerCount, err = decodeBencodeDict(bencodedString[currentIdx:l], false)
 			if err != nil {
 				return nil, 0, err
 			}
@@ -156,6 +161,11 @@ func decodeBencodeList(bencodedString string) (interface{}, int, error) {
 	// check if list ends with an 'e'
 	if bencodedString[currentIdx] != 'e' {
 		return nil, 0, fmt.Errorf("invalid list format")
+	}
+
+	// if the list is top level, the length must be checked to avoid extra trailing chars
+	if isTopLevel && currentIdx+1 != l {
+		return nil, 0, fmt.Errorf("invalid list format (extra chars present)")
 	}
 
 	// currentIdx+1 will show the true length of the string-encoded list just parsed
