@@ -17,91 +17,102 @@ func decodeBencode(bencodedString string) (interface{}, error) {
 	firstDigit := rune(bencodedString[0])
 
 	if unicode.IsDigit(firstDigit) {
-		return decodeBencodeString(bencodedString)
+		result, _, err := decodeBencodedString(bencodedString)
+		return result, err
 	} else if firstDigit == 'i' {
-		return decodeBencodedInt(bencodedString)
+		result, _, err := decodeBencodedInt(bencodedString)
+		return result, err
 	} else if firstDigit == 'l' {
-		return decodeBencodeList(bencodedString)
+		result, _, err := decodeBencodeList(bencodedString)
+		return result, err
 	} else {
 		return "", fmt.Errorf("unrecognized format")
 	}
 }
 
-func decodeBencodeList(bencodedString string) ([]interface{}, error) {
-	// check if last is 'e'
-	l := len(bencodedString)
-	if bencodedString[l-1] != 'e' {
-		return nil, fmt.Errorf("invalid list format")
-	}
+func decodeBencodeList(bencodedString string) (interface{}, int, error) {
+	// parse integer or string
+	// move carret
+	// check location afterwards to make sure it's an 'e'
+	// return length of list string
 	result := make([]interface{}, 0)
+
+	l := len(bencodedString)
 	currentIdx := 1
+
 	var firstRune rune
-	for (l-1)-currentIdx > 0 {
+	var innerCount int
+	var innerRes interface{}
+	var err error
+	for currentIdx < l {
 		firstRune = rune(bencodedString[currentIdx])
 		if unicode.IsDigit(firstRune) {
-			count, err := strconv.Atoi(string(firstRune))
+			innerRes, innerCount, err = decodeBencodedString(bencodedString[currentIdx:l])
 			if err != nil {
-				return nil, err
+				return nil, 0, err
 			}
-			// decoding the string using the previous decoder
-			res, err := decodeBencode(bencodedString[currentIdx : currentIdx+2+count])
+		} else if firstRune == 'i' {
+			innerRes, innerCount, err = decodeBencodedInt(bencodedString[currentIdx:l])
 			if err != nil {
-				return nil, err
+				return nil, 0, err
 			}
-			result = append(result, res)
-			// updating the current idx to point after the string
-			currentIdx += (2 + count)
-		} else if firstRune == 'i' || firstRune == 'l' {
-			// look through to find the ending
-			foundIdx := currentIdx
-			// don't take into account the last 'e'
-			for foundIdx < l-1 {
-				if bencodedString[foundIdx] == 'e' {
-					break
-				}
-				foundIdx++
-			}
-			// this means it was not found
-			if foundIdx == l-1 {
-				if firstRune == 'i' {
-					return nil, fmt.Errorf("invalid integer format")
-				} else {
-					return nil, fmt.Errorf("invalid list format")
-				}
-			}
-			res, err := decodeBencode(bencodedString[currentIdx : foundIdx+1])
+		} else if firstRune == 'l' {
+			// return nested list and its count
+			innerRes, innerCount, err = decodeBencodeList(bencodedString[currentIdx:l])
 			if err != nil {
-				return nil, err
+				return nil, 0, err
 			}
-			result = append(result, res)
-			currentIdx = foundIdx + 1
+		} else {
+			// if anything else is found, the provided string is not an exact match of the element
+			// so stop the parsing here
+			break
 		}
+		result = append(result, innerRes)
+		currentIdx += innerCount
 	}
-	return result, nil
 
+	// check if list ends with an 'e'
+	if bencodedString[currentIdx] != 'e' {
+		return nil, 0, fmt.Errorf("invalid list format")
+	}
+
+	// currentIdx+1 will show the true length of the string-encoded list just parsed
+	return result, currentIdx + 1, nil
 }
 
-func decodeBencodedInt(bencodedString string) (interface{}, error) {
+func decodeBencodedInt(bencodedString string) (interface{}, int, error) {
 	l := len(bencodedString)
-	if bencodedString[l-1] != 'e' {
-		return 0, fmt.Errorf("invalid integer format")
+	// find the ending e
+	foundIdx := 0
+	for foundIdx < l {
+		if bencodedString[foundIdx] == 'e' {
+			break
+		}
+		foundIdx++
 	}
-	sign := bencodedString[1]
-	numPart := bencodedString[1 : l-1]
+	if foundIdx == l {
+		return 0, 0, fmt.Errorf("invaid integer format")
+	}
+	first := bencodedString[1]
+	numPart := bencodedString[1:foundIdx]
 	num, err := strconv.Atoi(numPart)
 	if err != nil {
-		return 0, err
+		return 0, 0, err
 	}
-	if sign == '-' && num == 0 {
-		return 0, fmt.Errorf("negative zero not allowed")
-	} else if sign == '0' && num != 0 || num == 0 && l != 3 {
+	if first == '-' {
+		if num == 0 {
+			return 0, 0, fmt.Errorf("negative zero not allowed")
+		}
+		first = bencodedString[2]
+	}
+	if first == '0' && num != 0 || num == 0 && l != 3 {
 		// catching the leading zeros except for exactly '0'
-		return 0, fmt.Errorf("leading zeros are not allowed")
+		return 0, 0, fmt.Errorf("leading zeros are not allowed")
 	}
-	return num, nil
+	return num, foundIdx + 1, nil
 }
 
-func decodeBencodeString(bencodedString string) (interface{}, error) {
+func decodeBencodedString(bencodedString string) (interface{}, int, error) {
 	if unicode.IsDigit(rune(bencodedString[0])) {
 		var firstColonIndex int
 
@@ -116,12 +127,15 @@ func decodeBencodeString(bencodedString string) (interface{}, error) {
 
 		length, err := strconv.Atoi(lengthStr)
 		if err != nil {
-			return "", err
+			return "", 0, err
 		}
 
-		return bencodedString[firstColonIndex+1 : firstColonIndex+1+length], nil
+		if (firstColonIndex + 1 + length) > len(bencodedString) {
+			return "", 0, fmt.Errorf("provided length mismatch")
+		}
+		return bencodedString[firstColonIndex+1 : firstColonIndex+1+length], length + 2, nil
 	} else {
-		return "", fmt.Errorf("Only strings are supported at the moment")
+		return "", 0, fmt.Errorf("only strings are supported at the moment")
 	}
 }
 
