@@ -15,13 +15,66 @@ import (
 // - 10:hello12345 -> hello12345
 func decodeBencode(bencodedString string) (interface{}, error) {
 	firstDigit := rune(bencodedString[0])
+
 	if unicode.IsDigit(firstDigit) {
 		return decodeBencodeString(bencodedString)
 	} else if firstDigit == 'i' {
 		return decodeBencodedInt(bencodedString)
+	} else if firstDigit == 'l' {
+		return decodeBencodeList(bencodedString)
 	} else {
 		return "", fmt.Errorf("unrecognized format")
 	}
+}
+
+func decodeBencodeList(bencodedString string) ([]interface{}, error) {
+	// check if last is 'e'
+	l := len(bencodedString)
+	if bencodedString[l-1] != 'e' {
+		return nil, fmt.Errorf("invalid list format")
+	}
+	var result []interface{}
+	currentIdx := 1
+	var firstRune rune
+	for (l-1)-currentIdx > 0 {
+		firstRune = rune(bencodedString[currentIdx])
+		if unicode.IsDigit(firstRune) {
+			count, err := strconv.Atoi(string(firstRune))
+			if err != nil {
+				return nil, err
+			}
+			// decoding the string using the previous decoder
+			res, err := decodeBencode(bencodedString[currentIdx : currentIdx+2+count])
+			if err != nil {
+				return nil, err
+			}
+			result = append(result, res)
+			// updating the current idx to point after the string
+			currentIdx += (2 + count)
+		} else if firstRune == 'i' {
+			// look through to find the ending
+			foundIdx := currentIdx
+			// don't take into account the last 'e'
+			for foundIdx < l-1 {
+				if bencodedString[foundIdx] == 'e' {
+					break
+				}
+				foundIdx++
+			}
+			// this means it was not found
+			if foundIdx == l-1 {
+				return nil, fmt.Errorf("invalid integer format")
+			}
+			res, err := decodeBencode(bencodedString[currentIdx : foundIdx+1])
+			if err != nil {
+				return nil, err
+			}
+			result = append(result, res)
+			currentIdx = foundIdx + 1
+		}
+	}
+	return result, nil
+
 }
 
 func decodeBencodedInt(bencodedString string) (interface{}, error) {
