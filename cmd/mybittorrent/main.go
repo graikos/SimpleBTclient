@@ -33,7 +33,7 @@ func decodeBencodeList(bencodedString string) ([]interface{}, error) {
 	if bencodedString[l-1] != 'e' {
 		return nil, fmt.Errorf("invalid list format")
 	}
-	var result []interface{}
+	result := make([]interface{}, 0)
 	currentIdx := 1
 	var firstRune rune
 	for (l-1)-currentIdx > 0 {
