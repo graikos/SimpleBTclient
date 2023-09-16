@@ -51,7 +51,7 @@ func decodeBencodeList(bencodedString string) ([]interface{}, error) {
 			result = append(result, res)
 			// updating the current idx to point after the string
 			currentIdx += (2 + count)
-		} else if firstRune == 'i' {
+		} else if firstRune == 'i' || firstRune == 'l' {
 			// look through to find the ending
 			foundIdx := currentIdx
 			// don't take into account the last 'e'
@@ -63,7 +63,11 @@ func decodeBencodeList(bencodedString string) ([]interface{}, error) {
 			}
 			// this means it was not found
 			if foundIdx == l-1 {
-				return nil, fmt.Errorf("invalid integer format")
+				if firstRune == 'i' {
+					return nil, fmt.Errorf("invalid integer format")
+				} else {
+					return nil, fmt.Errorf("invalid list format")
+				}
 			}
 			res, err := decodeBencode(bencodedString[currentIdx : foundIdx+1])
 			if err != nil {
