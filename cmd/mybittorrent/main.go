@@ -25,9 +25,86 @@ func decodeBencode(bencodedString string) (interface{}, error) {
 	} else if firstDigit == 'l' {
 		result, _, err := decodeBencodeList(bencodedString)
 		return result, err
+	} else if firstDigit == 'd' {
+		result, _, err := decodeBencodeDict(bencodedString)
+		return result, err
 	} else {
 		return "", fmt.Errorf("unrecognized format")
 	}
+}
+
+func decodeBencodeDict(bencodedString string) (interface{}, int, error) {
+	result := make(map[string]interface{})
+	keyMode := true
+
+	l := len(bencodedString)
+	currentIdx := 1
+	var firstRune rune
+	var innerCount int
+	var innerRes interface{}
+	var recentKey string
+	var previousKey string
+	var err error
+	for currentIdx < l {
+		firstRune = rune(bencodedString[currentIdx])
+		if unicode.IsDigit(firstRune) {
+			innerRes, innerCount, err = decodeBencodedString(bencodedString[currentIdx:l])
+			if err != nil {
+				return nil, 0, err
+			}
+		} else if firstRune == 'i' {
+			if keyMode {
+				return nil, 0, fmt.Errorf("invalid key type")
+			}
+			innerRes, innerCount, err = decodeBencodedInt(bencodedString[currentIdx:l])
+			if err != nil {
+				return nil, 0, err
+			}
+		} else if firstRune == 'l' {
+			if keyMode {
+				return nil, 0, fmt.Errorf("invalid key type")
+			}
+			// return nested list and its count
+			innerRes, innerCount, err = decodeBencodeList(bencodedString[currentIdx:l])
+			if err != nil {
+				return nil, 0, err
+			}
+		} else if firstRune == 'd' {
+			if keyMode {
+				return nil, 0, fmt.Errorf("invalid key type")
+			}
+			innerRes, innerCount, err = decodeBencodeDict(bencodedString[currentIdx:l])
+			if err != nil {
+				return nil, 0, err
+			}
+		} else {
+			// if anything else is found, the provided string is not an exact match of the element
+			// so stop the parsing here
+			break
+		}
+		// result = append(result, innerRes)
+		// currentIdx += innerCount
+		if keyMode {
+			previousKey = recentKey
+			recentKey = innerRes.(string)
+			if previousKey > recentKey {
+				return nil, 0, fmt.Errorf("keys not lexicographically sorted")
+			}
+			keyMode = false
+		} else {
+			result[recentKey] = innerRes
+			keyMode = true
+		}
+		currentIdx += innerCount
+	}
+
+	// check if list ends with an 'e'
+	if bencodedString[currentIdx] != 'e' {
+		return nil, 0, fmt.Errorf("invalid list format")
+	}
+
+	// currentIdx+1 will show the true length of the string-encoded list just parsed
+	return result, currentIdx + 1, nil
 }
 
 func decodeBencodeList(bencodedString string) (interface{}, int, error) {
@@ -59,6 +136,11 @@ func decodeBencodeList(bencodedString string) (interface{}, int, error) {
 		} else if firstRune == 'l' {
 			// return nested list and its count
 			innerRes, innerCount, err = decodeBencodeList(bencodedString[currentIdx:l])
+			if err != nil {
+				return nil, 0, err
+			}
+		} else if firstRune == 'd' {
+			innerRes, innerCount, err = decodeBencodeDict(bencodedString[currentIdx:l])
 			if err != nil {
 				return nil, 0, err
 			}
