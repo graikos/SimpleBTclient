@@ -215,7 +215,7 @@ func decodeBencodedString(bencodedString string) (interface{}, int, error) {
 		if (firstColonIndex + 1 + length) > len(bencodedString) {
 			return "", 0, fmt.Errorf("provided length mismatch")
 		}
-		return bencodedString[firstColonIndex+1 : firstColonIndex+1+length], length + 2, nil
+		return bencodedString[firstColonIndex+1 : firstColonIndex+1+length], length + 1 + firstColonIndex, nil
 	} else {
 		return "", 0, fmt.Errorf("only strings are supported at the moment")
 	}
