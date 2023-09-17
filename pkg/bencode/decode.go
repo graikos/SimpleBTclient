@@ -127,14 +127,27 @@ func decodeBencodedList(bencodedString string, isTopLevel bool) (interface{}, in
 		if unicode.IsDigit(firstRune) {
 			innerRes, innerCount, err = decodeBencodedString(bencodedString[currentIdx:l])
 		} else {
-			if firstRune == 'i' {
+			// if firstRune == 'i' {
+			// 	innerRes, innerCount, err = decodeBencodedInt(bencodedString[currentIdx:l])
+			// } else if firstRune == 'l' {
+			// 	// return nested list and its count
+			// 	innerRes, innerCount, err = decodeBencodedList(bencodedString[currentIdx:l], false)
+			// } else if firstRune == 'd' {
+			// 	innerRes, innerCount, err = decodeBencodedDict(bencodedString[currentIdx:l], false)
+			// } else {
+			// 	// if anything else is found, the provided string is not an exact match of the element
+			// 	// so stop the parsing here
+			// 	break
+			// }
+			switch firstRune {
+			case 'i':
 				innerRes, innerCount, err = decodeBencodedInt(bencodedString[currentIdx:l])
-			} else if firstRune == 'l' {
+			case 'l':
 				// return nested list and its count
 				innerRes, innerCount, err = decodeBencodedList(bencodedString[currentIdx:l], false)
-			} else if firstRune == 'd' {
+			case 'd':
 				innerRes, innerCount, err = decodeBencodedDict(bencodedString[currentIdx:l], false)
-			} else {
+			default:
 				// if anything else is found, the provided string is not an exact match of the element
 				// so stop the parsing here
 				break
