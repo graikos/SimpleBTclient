@@ -43,44 +43,50 @@ func decodeBencodedDict(bencodedString string, isTopLevel bool) (interface{}, in
 	var err error
 	for currentIdx < l {
 		firstRune = rune(bencodedString[currentIdx])
-
-		if keyMode && (firstRune == 'i' || firstRune == 'l' || firstRune == 'd') {
-			return nil, 0, fmt.Errorf("invalid key type")
-		}
-
 		if unicode.IsDigit(firstRune) {
 			innerRes, innerCount, err = decodeBencodedString(bencodedString[currentIdx:l])
-		} else {
-			switch firstRune {
-			case 'i':
-				innerRes, innerCount, err = decodeBencodedInt(bencodedString[currentIdx:l])
-			case 'l':
-				innerRes, innerCount, err = decodeBencodedList(bencodedString[currentIdx:l], false)
-			case 'd':
-				innerRes, innerCount, err = decodeBencodedDict(bencodedString[currentIdx:l], false)
-			default:
-				// if anything else is found, the provided string is not an exact match of the element
-				// so stop the parsing here
-				break
+			if err != nil {
+				return nil, 0, err
 			}
-
+		} else if firstRune == 'i' {
+			if keyMode {
+				return nil, 0, fmt.Errorf("invalid key type")
+			}
+			innerRes, innerCount, err = decodeBencodedInt(bencodedString[currentIdx:l])
+			if err != nil {
+				return nil, 0, err
+			}
+		} else if firstRune == 'l' {
+			if keyMode {
+				return nil, 0, fmt.Errorf("invalid key type")
+			}
+			// return nested list and its count
+			innerRes, innerCount, err = decodeBencodedList(bencodedString[currentIdx:l], false)
+			if err != nil {
+				return nil, 0, err
+			}
+		} else if firstRune == 'd' {
+			if keyMode {
+				return nil, 0, fmt.Errorf("invalid key type")
+			}
+			innerRes, innerCount, err = decodeBencodedDict(bencodedString[currentIdx:l], false)
+			if err != nil {
+				return nil, 0, err
+			}
+		} else {
+			// if anything else is found, the provided string is not an exact match of the element
+			// so stop the parsing here
+			break
 		}
-
-		if err != nil {
-			return nil, 0, err
-		}
-
+		// result = append(result, innerRes)
+		// currentIdx += innerCount
 		if keyMode {
-
 			previousKey = recentKey
 			recentKey = innerRes.(string)
-
 			if previousKey > recentKey {
 				return nil, 0, fmt.Errorf("keys not lexicographically sorted")
 			}
-
 			keyMode = false
-
 		} else {
 			result[recentKey] = innerRes
 			keyMode = true
