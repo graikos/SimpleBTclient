@@ -126,30 +126,25 @@ func decodeBencodedList(bencodedString string, isTopLevel bool) (interface{}, in
 		firstRune = rune(bencodedString[currentIdx])
 		if unicode.IsDigit(firstRune) {
 			innerRes, innerCount, err = decodeBencodedString(bencodedString[currentIdx:l])
-			if err != nil {
-				return nil, 0, err
-			}
-		} else if firstRune == 'i' {
-			innerRes, innerCount, err = decodeBencodedInt(bencodedString[currentIdx:l])
-			if err != nil {
-				return nil, 0, err
-			}
-		} else if firstRune == 'l' {
-			// return nested list and its count
-			innerRes, innerCount, err = decodeBencodedList(bencodedString[currentIdx:l], false)
-			if err != nil {
-				return nil, 0, err
-			}
-		} else if firstRune == 'd' {
-			innerRes, innerCount, err = decodeBencodedDict(bencodedString[currentIdx:l], false)
-			if err != nil {
-				return nil, 0, err
-			}
 		} else {
-			// if anything else is found, the provided string is not an exact match of the element
-			// so stop the parsing here
-			break
+			if firstRune == 'i' {
+				innerRes, innerCount, err = decodeBencodedInt(bencodedString[currentIdx:l])
+			} else if firstRune == 'l' {
+				// return nested list and its count
+				innerRes, innerCount, err = decodeBencodedList(bencodedString[currentIdx:l], false)
+			} else if firstRune == 'd' {
+				innerRes, innerCount, err = decodeBencodedDict(bencodedString[currentIdx:l], false)
+			} else {
+				// if anything else is found, the provided string is not an exact match of the element
+				// so stop the parsing here
+				break
+			}
 		}
+
+		if err != nil {
+			return nil, 0, err
+		}
+
 		result = append(result, innerRes)
 		currentIdx += innerCount
 	}
