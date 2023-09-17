@@ -140,7 +140,6 @@ LOOP:
 			// 	// so stop the parsing here
 			// 	break
 			// }
-			fmt.Println("rune is: ", string(firstRune))
 			switch firstRune {
 			case 'i':
 				innerRes, innerCount, err = decodeBencodedInt(bencodedString[currentIdx:l])
