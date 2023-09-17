@@ -122,6 +122,7 @@ func decodeBencodedList(bencodedString string, isTopLevel bool) (interface{}, in
 	var innerCount int
 	var innerRes interface{}
 	var err error
+LOOP:
 	for currentIdx < l {
 		firstRune = rune(bencodedString[currentIdx])
 		if unicode.IsDigit(firstRune) {
@@ -139,6 +140,7 @@ func decodeBencodedList(bencodedString string, isTopLevel bool) (interface{}, in
 			// 	// so stop the parsing here
 			// 	break
 			// }
+			fmt.Println("rune is: ", string(firstRune))
 			switch firstRune {
 			case 'i':
 				innerRes, innerCount, err = decodeBencodedInt(bencodedString[currentIdx:l])
@@ -150,7 +152,8 @@ func decodeBencodedList(bencodedString string, isTopLevel bool) (interface{}, in
 			default:
 				// if anything else is found, the provided string is not an exact match of the element
 				// so stop the parsing here
-				break
+				// break with label used to break from the loop, not the auto break from the case
+				break LOOP
 			}
 		}
 
