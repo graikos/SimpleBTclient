@@ -44,7 +44,7 @@ func decodeBencodedDict(bencodedString string, isTopLevel bool) (interface{}, in
 	var innerCount int
 	var innerRes interface{}
 	var recentKey string
-	var previousKey string
+	// var previousKey string
 	var err error
 LOOP:
 	for currentIdx < l {
@@ -78,11 +78,12 @@ LOOP:
 		// result = append(result, innerRes)
 		// currentIdx += innerCount
 		if keyMode {
-			previousKey = recentKey
+			// previousKey = recentKey
 			recentKey = innerRes.(string)
-			if previousKey > recentKey {
-				return nil, 0, fmt.Errorf("keys not lexicographically sorted")
-			}
+			// Removed the lexicographical sorting requirement because tracker did not always respond like that
+			// if previousKey > recentKey {
+			// 	return nil, 0, fmt.Errorf("keys not lexicographically sorted")
+			// }
 			keyMode = false
 		} else {
 			result[recentKey] = innerRes

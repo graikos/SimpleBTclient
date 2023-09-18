@@ -3,7 +3,6 @@ package main
 import (
 	// Uncomment this line to pass the first stage
 
-	"bufio"
 	"fmt"
 	"os"
 
@@ -31,41 +30,35 @@ func main() {
 
 		torrentPath := os.Args[2]
 
-		f, err := os.Open(torrentPath)
+		t, err := torrent.NewSingleTorrentFromFile(torrentPath)
 		if err != nil {
 			fmt.Println(err)
-			return
+			os.Exit(1)
 		}
-		defer f.Close()
 
-		torrent, err := torrent.NewSingleTorrentFile(bufio.NewReader(f))
-		if err != nil {
-			fmt.Println(err)
-			return
-		}
-		fmt.Println("Tracker URL:", torrent.Announce)
-		l, err := torrent.Length()
+		fmt.Println("Tracker URL:", t.Announce())
+		l, err := t.Length()
 		if err != nil {
 			fmt.Println(err)
 			return
 		}
 		fmt.Println("Length:", l)
 
-		hash, err := torrent.InfoHash()
+		hash, err := t.InfoHash()
 		if err != nil {
 			fmt.Println(err)
 			return
 		}
 		fmt.Printf("Info Hash: %x\n", hash)
 
-		pl, err := torrent.PieceLength()
+		pl, err := t.PieceLength()
 		if err != nil {
 			fmt.Println(err)
 			return
 		}
 		fmt.Println("Piece Length:", pl)
 
-		pcs, err := torrent.Pieces()
+		pcs, err := t.Pieces()
 		if err != nil {
 			fmt.Println(err)
 			return
@@ -73,6 +66,27 @@ func main() {
 		fmt.Println("Piece Hashes:")
 		for _, pieceHash := range pcs {
 			fmt.Printf("%x\n", pieceHash)
+		}
+
+	case "peers":
+
+		torrentPath := os.Args[2]
+
+		t, err := torrent.NewSingleTorrentFromFile(torrentPath)
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+
+		tracker := torrent.NewTracker(t)
+		resp, err := tracker.AskForPeers()
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+
+		for _, peer := range resp.Peers {
+			fmt.Printf("%s:%d\n", peer.AddrIPV4, peer.Port)
 		}
 
 	default:

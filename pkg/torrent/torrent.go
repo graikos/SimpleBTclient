@@ -1,21 +1,38 @@
 package torrent
 
 import (
+	"bufio"
 	"crypto/sha1"
 	"errors"
 	"io"
+	"os"
 
 	"github.com/codecrafters-io/bittorrent-starter-go/pkg/bencode"
 )
 
+type Torrent interface {
+	InfoHash() ([]byte, error)
+	Announce() string
+	Length() (int, error)
+}
+
 type SingleTorrentFile struct {
-	Announce string
-	Info     map[string]interface{}
+	TrackerURL string
+	Info       map[string]interface{}
 }
 
 var ErrInvalidTorrentFormat = errors.New("invalid torrent file format")
 var ErrMissingInfoKeys = errors.New("missing keys from info dictionary")
 var ErrInvalidValueType = errors.New("invalid value type in dictionary")
+
+func NewSingleTorrentFromFile(path string) (*SingleTorrentFile, error) {
+	f, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+	return NewSingleTorrentFile(bufio.NewReader(f))
+}
 
 func NewSingleTorrentFile(r io.Reader) (*SingleTorrentFile, error) {
 	buf, err := io.ReadAll(r)
@@ -37,7 +54,7 @@ func NewSingleTorrentFile(r io.Reader) (*SingleTorrentFile, error) {
 	if _, ok := fileDict["announce"]; !ok {
 		return nil, ErrInvalidTorrentFormat
 	}
-	if torrent.Announce, ok = fileDict["announce"].(string); !ok {
+	if torrent.TrackerURL, ok = fileDict["announce"].(string); !ok {
 		return nil, ErrInvalidTorrentFormat
 	}
 
@@ -114,4 +131,8 @@ func (t *SingleTorrentFile) InfoHash() ([]byte, error) {
 	}
 	res := sha1.Sum([]byte(encodedInfo))
 	return res[:], nil
+}
+
+func (t *SingleTorrentFile) Announce() string {
+	return t.TrackerURL
 }
