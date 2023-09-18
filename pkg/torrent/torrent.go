@@ -84,12 +84,27 @@ func (t *SingleTorrentFile) PieceLength() (int, error) {
 	}
 }
 
-func (t *SingleTorrentFile) Pieces() ([]byte, error) {
-	if p, ok := t.Info["pieces"].([]byte); !ok {
-		return nil, ErrInvalidValueType
+func (t *SingleTorrentFile) PiecesBlob() (string, error) {
+	if p, ok := t.Info["pieces"].(string); !ok {
+		return "", ErrInvalidValueType
 	} else {
 		return p, nil
 	}
+}
+
+func (t *SingleTorrentFile) Pieces() ([][]byte, error) {
+	blobString, err := t.PiecesBlob()
+	blob := []byte(blobString)
+	if err != nil {
+		return nil, err
+	}
+
+	result := make([][]byte, len(blob)/sha1.Size)
+	for i := range result {
+		result[i] = blob[i*sha1.Size : (i+1)*sha1.Size]
+	}
+
+	return result, nil
 }
 
 func (t *SingleTorrentFile) InfoHash() ([]byte, error) {

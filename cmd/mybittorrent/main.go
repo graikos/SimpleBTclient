@@ -58,6 +58,23 @@ func main() {
 		}
 		fmt.Printf("Info Hash: %x\n", hash)
 
+		pl, err := torrent.PieceLength()
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+		fmt.Println("Piece Length:", pl)
+
+		pcs, err := torrent.Pieces()
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+		fmt.Println("Piece Hashes:")
+		for _, pieceHash := range pcs {
+			fmt.Printf("%x\n", pieceHash)
+		}
+
 	default:
 		fmt.Println("Unknown command: " + command)
 		os.Exit(1)
