@@ -1,6 +1,7 @@
 package bencode
 
 import (
+	"encoding/json"
 	"fmt"
 	"strconv"
 	"unicode"
@@ -12,21 +13,25 @@ import (
 func DecodeBencode(bencodedString string) (interface{}, error) {
 	firstDigit := rune(bencodedString[0])
 
+	var result interface{}
+	var err error
+
 	if unicode.IsDigit(firstDigit) {
-		result, _, err := decodeBencodedString(bencodedString)
-		return result, err
-	} else if firstDigit == 'i' {
-		result, _, err := decodeBencodedInt(bencodedString)
-		return result, err
-	} else if firstDigit == 'l' {
-		result, _, err := decodeBencodedList(bencodedString, true)
-		return result, err
-	} else if firstDigit == 'd' {
-		result, _, err := decodeBencodedDict(bencodedString, true)
-		return result, err
+		result, _, err = decodeBencodedString(bencodedString)
 	} else {
-		return "", fmt.Errorf("unrecognized format")
+		switch firstDigit {
+		case 'i':
+			result, _, err = decodeBencodedInt(bencodedString)
+		case 'l':
+			result, _, err = decodeBencodedList(bencodedString, true)
+		case 'd':
+			result, _, err = decodeBencodedDict(bencodedString, true)
+		default:
+			return "", fmt.Errorf("unrecognized format")
+		}
 	}
+
+	return result, err
 }
 
 func decodeBencodedDict(bencodedString string, isTopLevel bool) (interface{}, int, error) {
@@ -227,4 +232,14 @@ func decodeBencodedString(bencodedString string) (interface{}, int, error) {
 	} else {
 		return "", 0, fmt.Errorf("only strings are supported at the moment")
 	}
+}
+
+func DecodeBencodeToJSON(bencodedString string) (string, error) {
+	decoded, err := DecodeBencode(bencodedString)
+	if err != nil {
+		return "", err
+	}
+
+	jsonOutput, err := json.Marshal(decoded)
+	return string(jsonOutput), err
 }

@@ -2,11 +2,13 @@ package main
 
 import (
 	// Uncomment this line to pass the first stage
-	"encoding/json"
+
+	"bufio"
 	"fmt"
 	"os"
 
 	"github.com/codecrafters-io/bittorrent-starter-go/pkg/bencode"
+	"github.com/codecrafters-io/bittorrent-starter-go/pkg/torrent"
 	// bencode "github.com/jackpal/bencode-go" // Available if you need it!
 )
 
@@ -14,21 +16,44 @@ func main() {
 
 	command := os.Args[1]
 
-	if command == "decode" {
-		// Uncomment this block to pass the first stage
-
+	switch command {
+	case "decode":
 		bencodedValue := os.Args[2]
 
-		decoded, err := bencode.DecodeBencode(bencodedValue)
+		jsonOutput, err := bencode.DecodeBencodeToJSON(bencodedValue)
 		if err != nil {
 			fmt.Println(err)
 			return
 		}
 
-		jsonOutput, _ := json.Marshal(decoded)
-		fmt.Println(string(jsonOutput))
-	} else {
+		fmt.Println(jsonOutput)
+	case "info":
+
+		torrentPath := os.Args[2]
+
+		f, err := os.Open(torrentPath)
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+		defer f.Close()
+
+		torrent, err := torrent.NewSingleTorrentFile(bufio.NewReader(f))
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+		fmt.Println("Tracker URL:", torrent.Announce)
+		l, err := torrent.Length()
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+		fmt.Println("Length:", l)
+
+	default:
 		fmt.Println("Unknown command: " + command)
 		os.Exit(1)
 	}
+
 }
