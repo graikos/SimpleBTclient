@@ -51,6 +51,13 @@ func main() {
 		}
 		fmt.Println("Length:", l)
 
+		hash, err := torrent.InfoHash()
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+		fmt.Printf("Info Hash: %x\n", hash)
+
 	default:
 		fmt.Println("Unknown command: " + command)
 		os.Exit(1)

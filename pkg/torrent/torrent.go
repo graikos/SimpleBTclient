@@ -1,6 +1,7 @@
 package torrent
 
 import (
+	"crypto/sha1"
 	"errors"
 	"io"
 
@@ -89,4 +90,13 @@ func (t *SingleTorrentFile) Pieces() ([]byte, error) {
 	} else {
 		return p, nil
 	}
+}
+
+func (t *SingleTorrentFile) InfoHash() ([]byte, error) {
+	encodedInfo, err := bencode.EncodeBencodeToString(t.Info)
+	if err != nil {
+		return nil, err
+	}
+	res := sha1.Sum([]byte(encodedInfo))
+	return res[:], nil
 }
