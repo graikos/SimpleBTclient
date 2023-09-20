@@ -119,7 +119,7 @@ func main() {
 			fmt.Println(err)
 			os.Exit(1)
 		}
-		fmt.Printf("%x\n", res)
+		fmt.Printf("Peer ID: %x\n", res)
 
 	default:
 		fmt.Println("Unknown command: " + command)
