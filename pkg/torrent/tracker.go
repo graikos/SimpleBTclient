@@ -17,7 +17,7 @@ type Tracker struct {
 	torrent Torrent
 }
 
-var peerID string = "0011ellada0131278899"
+var peerID string = "00112233445566778899"
 
 func NewTracker(torrent Torrent) *Tracker {
 	return &Tracker{
@@ -58,6 +58,8 @@ func (t *Tracker) AskForPeers() (*TrackerResponse, error) {
 	if err != nil {
 		return nil, err
 	}
+	// fmt.Println("body is")
+	// fmt.Println(string(body))
 
 	decodedResp, err := bencode.DecodeBencode(string(body))
 	if err != nil {
