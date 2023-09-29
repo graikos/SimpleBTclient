@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/codecrafters-io/bittorrent-starter-go/pkg/bencode"
+	"github.com/codecrafters-io/bittorrent-starter-go/pkg/conn"
 	"github.com/codecrafters-io/bittorrent-starter-go/pkg/torrent"
 	// bencode "github.com/jackpal/bencode-go" // Available if you need it!
 )
@@ -114,12 +115,14 @@ func main() {
 		}
 
 		ih, _ := t.InfoHash()
-		res, err := peer.PerformHandshake(string(ih))
+		// res, conn, err := peer.PerformHandshake(string(ih))
+		conn, err := conn.EstablishConnection(torrent.LocalPeerID, peer, string(ih))
+		defer conn.Close()
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(1)
 		}
-		fmt.Printf("Peer ID: %x\n", res)
+		fmt.Printf("Peer ID: %x\n", conn.RemotePeerID())
 
 	default:
 		fmt.Println("Unknown command: " + command)

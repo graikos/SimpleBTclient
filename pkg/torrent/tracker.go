@@ -17,7 +17,7 @@ type Tracker struct {
 	torrent Torrent
 }
 
-var peerID string = "00112233445566778899"
+var LocalPeerID string = "00112233445566778899"
 
 func NewTracker(torrent Torrent) *Tracker {
 	return &Tracker{
@@ -34,8 +34,8 @@ func (t *Tracker) AskForPeers() (*TrackerResponse, error) {
 	}
 
 	params.Add("info_hash", string(infohash))
-	params.Add("peer_id", peerID) // hardcoding this one
-	params.Add("port", "6881")    // won't be used
+	params.Add("peer_id", LocalPeerID) // hardcoding this one
+	params.Add("port", "6881")         // won't be used
 	params.Add("uploaded", "0")
 	params.Add("downloaded", "0")
 
