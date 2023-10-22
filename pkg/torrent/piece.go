@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"crypto/sha1"
 	"fmt"
-	"os"
+	"io"
 )
 
 type Piece interface {
@@ -17,19 +17,19 @@ type Piece interface {
 }
 
 type BasicPiece struct {
-	data     []byte
-	filepath string
-	idx      int
+	data    []byte
+	storage io.Writer
+	idx     int
 
 	written int
 }
 
-func NewPiece(length int, filepath string, idx int) Piece {
+func NewPiece(length int, storage io.Writer, idx int) Piece {
 	return &BasicPiece{
-		data:     make([]byte, length),
-		filepath: filepath,
-		idx:      idx,
-		written:  0,
+		data:    make([]byte, length),
+		storage: storage,
+		idx:     idx,
+		written: 0,
 	}
 }
 
@@ -62,12 +62,12 @@ func (bp *BasicPiece) Verify(givenHash []byte) bool {
 }
 
 func (bp *BasicPiece) Commit() error {
-	f, err := os.OpenFile(bp.filepath, os.O_CREATE|os.O_WRONLY, 0644)
-	defer f.Close()
-	if err != nil {
-		return err
-	}
-	n, err := f.Write(bp.data)
+	// f, err := os.OpenFile(bp.filepath, os.O_CREATE|os.O_WRONLY, 0644)
+	// defer f.Close()
+	// if err != nil {
+	// 	return err
+	// }
+	n, err := bp.storage.Write(bp.data)
 	if err != nil {
 		return err
 	}

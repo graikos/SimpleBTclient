@@ -2,6 +2,7 @@ package services
 
 import (
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/codecrafters-io/bittorrent-starter-go/pkg/conn"
@@ -40,6 +41,12 @@ func (dps *downloadPieceServiceImpl) DownloadPiece(filepath string, torrentFile 
 
 	var peerConn *conn.PeerConn
 
+	f, err := os.OpenFile(filepath, os.O_CREATE|os.O_WRONLY, 0644)
+	defer f.Close()
+	if err != nil {
+		return err
+	}
+
 	for _, remotePeer := range resp.Peers {
 		// // randomly select one peer
 		// remotePeer := resp.Peers[0]
@@ -57,5 +64,5 @@ func (dps *downloadPieceServiceImpl) DownloadPiece(filepath string, torrentFile 
 
 	defer peerConn.Close()
 
-	return peerConn.AskForPiece(idx, filepath)
+	return peerConn.AskForPiece(idx, f)
 }

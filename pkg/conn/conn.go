@@ -34,6 +34,7 @@ type PeerConn struct {
 	hasBitfield chan struct{}
 
 	currentPiece torrent.Piece
+	storage      io.Writer
 
 	eventQueue chan *event
 	errChan    chan error
@@ -100,7 +101,7 @@ func EstablishConnection(localPeerID string, rp *torrent.Peer, t torrent.Torrent
 
 // AskForPiece will initiate a peer message exchange to download the piece specified by idx.
 // Since the response messages do not identify a piece uniquely, only one piece can be downloaded at a time.
-func (pc *PeerConn) AskForPiece(idx int, filepath string) error {
+func (pc *PeerConn) AskForPiece(idx int, writer io.Writer) error {
 
 	pc.logger.Debug("Started AskForPiece routine")
 
@@ -108,14 +109,14 @@ func (pc *PeerConn) AskForPiece(idx int, filepath string) error {
 	// this is optional in the bittorrent protocol but required in the codecrafters outline
 	<-pc.hasBitfield
 
+	pc.storage = writer
+
 	pc.logger.Debug("Passed hasBitfield barrier in AskForPiece")
 
 	// add an event that sends interested message
 	// if the FSM is at a state where a new transfer can begin, the current idx will be set
-	buf := make([]byte, 4+len(filepath))
+	buf := make([]byte, 4)
 	binary.BigEndian.PutUint32(buf[0:4], uint32(idx))
-
-	copy(buf[4:], []byte(filepath))
 
 	s := make(chan error)
 	pc.eventQueue <- &event{

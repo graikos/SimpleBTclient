@@ -23,8 +23,6 @@ func (pc *PeerConn) produceInterested(e *event) error {
 	// setting current piece index
 	currentIdx := int(binary.BigEndian.Uint32(e.payload[0:4]))
 
-	filepath := string(e.payload[4:])
-
 	var curPieceLen int
 
 	pieceLen, err := pc.torrent.PieceLength()
@@ -49,8 +47,8 @@ func (pc *PeerConn) produceInterested(e *event) error {
 		curPieceLen = pieceLen
 	}
 
-	pc.currentPiece = torrent.NewPiece(curPieceLen, filepath, currentIdx)
-	pc.logger.Debug("This is the current Piece:", pc.currentPiece.Index(), pc.currentPiece.Length(), filepath)
+	pc.currentPiece = torrent.NewPiece(curPieceLen, pc.storage, currentIdx)
+	pc.logger.Debug("This is the current Piece:", pc.currentPiece.Index(), pc.currentPiece.Length(), pc.storage)
 
 	return pc.write(newPeerMessage(interested, []byte{}))
 }
