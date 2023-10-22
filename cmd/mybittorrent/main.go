@@ -172,7 +172,7 @@ func main() {
 		logger.Printf("Downloaded %s to %s\n", torrentFilePath, *savePath)
 
 	default:
-		fmt.Println("Unknown command: " + command)
+		fmt.Println("Unknown command:", command)
 		os.Exit(1)
 	}
 
