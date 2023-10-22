@@ -3,6 +3,7 @@ package main
 import (
 	// Uncomment this line to pass the first stage
 
+	"flag"
 	"fmt"
 	"os"
 	"strconv"
@@ -10,11 +11,16 @@ import (
 
 	"github.com/codecrafters-io/bittorrent-starter-go/pkg/bencode"
 	"github.com/codecrafters-io/bittorrent-starter-go/pkg/conn"
+	"github.com/codecrafters-io/bittorrent-starter-go/pkg/log"
+	"github.com/codecrafters-io/bittorrent-starter-go/pkg/services"
 	"github.com/codecrafters-io/bittorrent-starter-go/pkg/torrent"
 	// bencode "github.com/jackpal/bencode-go" // Available if you need it!
 )
 
 func main() {
+
+	logger := log.NewLogger(log.NORMAL)
+	services.Logger = logger
 
 	command := os.Args[1]
 
@@ -114,15 +120,39 @@ func main() {
 			Port:     uint16(port),
 		}
 
-		ih, _ := t.InfoHash()
+		// ih, _ := t.InfoHash()
 		// res, conn, err := peer.PerformHandshake(string(ih))
-		conn, err := conn.EstablishConnection(torrent.LocalPeerID, peer, string(ih))
-		defer conn.Close()
+		pc, err := conn.EstablishConnection(torrent.LocalPeerID, peer, t, logger)
+		defer pc.Close()
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(1)
 		}
-		fmt.Printf("Peer ID: %x\n", conn.RemotePeerID())
+		fmt.Printf("Peer ID: %x\n", pc.RemotePeerID())
+
+	case "download_piece":
+		dowCmd := flag.NewFlagSet("download_piece", flag.ExitOnError)
+		savePath := dowCmd.String("o", "", "Sets the output path for the piece")
+
+		dowCmd.Parse(os.Args[2:])
+		if len(dowCmd.Args()) != 2 {
+			fmt.Println("Missing arguments")
+			os.Exit(1)
+		}
+
+		torrentFilePath := dowCmd.Arg(0)
+		pieceIndex, err := strconv.Atoi(dowCmd.Arg(1))
+		if err != nil {
+			fmt.Println("pieceIndex must be an integer")
+			os.Exit(1)
+		}
+
+		dowService := services.NewDownloadPieceService()
+		if err := dowService.DownloadPiece(*savePath, torrentFilePath, pieceIndex); err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+		logger.Printf("Piece %d downloaded to %s.\n", pieceIndex, *savePath)
 
 	default:
 		fmt.Println("Unknown command: " + command)

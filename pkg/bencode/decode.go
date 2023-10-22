@@ -203,6 +203,7 @@ func decodeBencodedInt(bencodedString string) (interface{}, int, error) {
 	}
 	if first == '0' && num != 0 || num == 0 && l != 3 {
 		// catching the leading zeros except for exactly '0'
+		fmt.Println(bencodedString)
 		return 0, 0, fmt.Errorf("leading zeros are not allowed")
 	}
 	return num, foundIdx + 1, nil

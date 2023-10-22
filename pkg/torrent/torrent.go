@@ -14,6 +14,8 @@ type Torrent interface {
 	InfoHash() ([]byte, error)
 	Announce() string
 	Length() (int, error)
+	PieceLength() (int, error)
+	Pieces() ([][]byte, error)
 }
 
 type SingleTorrentFile struct {
@@ -25,7 +27,7 @@ var ErrInvalidTorrentFormat = errors.New("invalid torrent file format")
 var ErrMissingInfoKeys = errors.New("missing keys from info dictionary")
 var ErrInvalidValueType = errors.New("invalid value type in dictionary")
 
-func NewSingleTorrentFromFile(path string) (*SingleTorrentFile, error) {
+func NewSingleTorrentFromFile(path string) (Torrent, error) {
 	f, err := os.Open(path)
 	if err != nil {
 		return nil, err
@@ -122,6 +124,11 @@ func (t *SingleTorrentFile) Pieces() ([][]byte, error) {
 	}
 
 	return result, nil
+}
+
+func (t *SingleTorrentFile) Piece(idx int) ([]byte, error) {
+	res, err := t.Pieces()
+	return res[idx], err
 }
 
 func (t *SingleTorrentFile) InfoHash() ([]byte, error) {
