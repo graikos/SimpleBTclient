@@ -21,7 +21,7 @@ type downloadFileServiceImpl struct {
 }
 
 func NewDownloadFileService() DownloadFileService {
-	return &downloadFileServiceImpl{log.NewLogger(log.DEBUG)}
+	return &downloadFileServiceImpl{log.NewLogger(log.NORMAL)}
 }
 
 func (df *downloadFileServiceImpl) DownloadFile(torrentFile, filepath string) error {
