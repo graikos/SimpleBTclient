@@ -144,7 +144,6 @@ func (pc *PeerConn) handlePiece(e *event) {
 	}
 
 	if err := pc.currentPiece.Commit(); err != nil {
-		// TODO: add channel to event handler
 		pc.errChan <- err
 		return
 	}
