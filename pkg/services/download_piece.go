@@ -48,8 +48,6 @@ func (dps *downloadPieceServiceImpl) DownloadPiece(filepath string, torrentFile 
 	}
 
 	for _, remotePeer := range resp.Peers {
-		// // randomly select one peer
-		// remotePeer := resp.Peers[0]
 
 		peerConn, err = conn.EstablishConnection(torrent.LocalPeerID, remotePeer, t, Logger)
 		if err != nil {

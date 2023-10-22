@@ -109,6 +109,8 @@ func (pc *PeerConn) AskForPiece(idx int, writer io.Writer) error {
 	// this is optional in the bittorrent protocol but required in the codecrafters outline
 	<-pc.hasBitfield
 
+	// initialize the piece storage
+	// each call to AskForPiece will renew this as expected
 	pc.storage = writer
 
 	pc.logger.Debug("Passed hasBitfield barrier in AskForPiece")
@@ -210,12 +212,13 @@ func (pc *PeerConn) listen() error {
 			pc.logger.Debug("read full message (trunc):", msgBuf[:100])
 		}
 
-		pc.eventQueue <- &event{
-			name:    msgTypeToString[peerMsgType(msgBuf[0])],
-			payload: msgBuf[1:msgLen],
+		if len(msgBuf) > 0 {
+			pc.eventQueue <- &event{
+				name:    msgTypeToString[peerMsgType(msgBuf[0])],
+				payload: msgBuf[1:msgLen],
+			}
+			pc.logger.Debug("just placed event in queue")
 		}
-
-		pc.logger.Debug("just placed event in queue")
 
 	}
 }
@@ -274,6 +277,9 @@ func (pc *PeerConn) handleEventQueue() error {
 	}
 }
 
+// initFSM initializes the Finite State Machine that will keep track
+// of the state and the response for each event according to it. This is
+// a concise way to handle all different cases of receiving events asynchronously.
 func (pc *PeerConn) initFSM() {
 	m := make(map[fsm.TransitionInput]fsm.TransitionOutput)
 

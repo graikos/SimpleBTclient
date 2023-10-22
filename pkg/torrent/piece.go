@@ -46,13 +46,16 @@ func (bp *BasicPiece) IsComplete() bool {
 }
 
 func (bp *BasicPiece) WriteBlock(begin int, data []byte) error {
+
 	if begin+len(data) > len(bp.data) {
 		return fmt.Errorf("data written to piece exceeds size")
 	}
 
 	copy(bp.data[begin:begin+len(data)], data)
+
 	// keep count of bytes written
 	bp.written += len(data)
+
 	return nil
 }
 
@@ -62,17 +65,15 @@ func (bp *BasicPiece) Verify(givenHash []byte) bool {
 }
 
 func (bp *BasicPiece) Commit() error {
-	// f, err := os.OpenFile(bp.filepath, os.O_CREATE|os.O_WRONLY, 0644)
-	// defer f.Close()
-	// if err != nil {
-	// 	return err
-	// }
+
 	n, err := bp.storage.Write(bp.data)
 	if err != nil {
 		return err
 	}
+
 	if n != len(bp.data) {
 		return fmt.Errorf("error writing piece data to file")
 	}
+
 	return nil
 }

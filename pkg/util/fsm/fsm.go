@@ -31,6 +31,10 @@ func NewFSM(diagram map[TransitionInput]TransitionOutput, initialState interface
 	}
 }
 
+func (f *FSM) CurrentState() interface{} {
+	return f.state
+}
+
 func (f *FSM) ApplyTransition(msg string) (string, bool) {
 	out, ok := f.transitionMap[TransitionInput{
 		f.state,

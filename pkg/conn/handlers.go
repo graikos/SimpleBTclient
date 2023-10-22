@@ -19,8 +19,6 @@ type block struct {
 
 func (pc *PeerConn) produceInterested(e *event) error {
 
-	pc.logger.Debug("running produceInterested with event", e, "and path", string(e.payload[4:]), "and idx", binary.BigEndian.Uint32(e.payload[0:4]))
-
 	// setting current piece index
 	currentIdx := int(binary.BigEndian.Uint32(e.payload[0:4]))
 
@@ -37,30 +35,12 @@ func (pc *PeerConn) produceInterested(e *event) error {
 
 	curPieceLen = util.GetLengthForIdx(tLen, pieceLen, currentIdx)
 
-	// noOfPieces := int((tLen + pieceLen - 1) / pieceLen)
-
-	// // if last
-	// if currentIdx == noOfPieces-1 {
-	// 	curPieceLen = tLen % pieceLen
-	// 	// but even division
-	// 	if curPieceLen == 0 {
-	// 		curPieceLen = pieceLen
-	// 	}
-	// } else {
-	// 	curPieceLen = pieceLen
-	// }
-
 	pc.currentPiece = torrent.NewPiece(curPieceLen, pc.storage, currentIdx)
-	pc.logger.Debug("This is the current Piece:", pc.currentPiece.Index(), pc.currentPiece.Length(), pc.storage)
 
 	return pc.write(newPeerMessage(interested, []byte{}))
 }
 
 func (pc *PeerConn) produceRequest(e *event) {
-	// TODO: Send requests (maybe waitgroup?) and save to piece
-	// in the end commit
-
-	pc.logger.Debug("In produceRequest got event:", e)
 
 	curPieceLen := pc.currentPiece.Length()
 
@@ -72,7 +52,10 @@ func (pc *PeerConn) produceRequest(e *event) {
 	wg := new(sync.WaitGroup)
 
 	for i := 0; i < noOfBlocks; i++ {
+
 		begin := i * blockSize
+
+		// determine block size and handle edge case of uneven division and piece being last
 		l := blockSize
 		if i == noOfBlocks-1 {
 			l = curPieceLen % blockSize
@@ -114,8 +97,6 @@ func (pc *PeerConn) produceRequest(e *event) {
 }
 
 func (pc *PeerConn) requestBlock(q <-chan struct{}, wg *sync.WaitGroup, b *block, errChan chan<- error) {
-	// fill in with sending blocks
-	// handle errors somehow
 
 	pc.logger.Debug("Making block of index:", b.idx, "begin:", b.begin, "length:", b.length)
 
@@ -126,20 +107,12 @@ func (pc *PeerConn) requestBlock(q <-chan struct{}, wg *sync.WaitGroup, b *block
 
 	errChan <- pc.write(newPeerMessage(request, payload))
 
-	// one task done
+	// task done, release worker
 	wg.Done()
-	// release one worker
 	<-q
 }
 
 func (pc *PeerConn) handlePiece(e *event) {
-
-	// add to current piece
-	// check if complete
-	// if not complete, continue
-	// if complete, verify hash
-	// then commit to storage
-	// then reset PeerConn fields (or leave)
 
 	// unmarshal payload
 	pieceIdxReceived := int(binary.BigEndian.Uint32(e.payload[0:4]))
@@ -164,6 +137,7 @@ func (pc *PeerConn) handlePiece(e *event) {
 		return
 	}
 
+	// verify integrity of the piece received
 	if !pc.currentPiece.Verify(hashes[pc.currentPiece.Index()]) {
 		pc.errChan <- fmt.Errorf("actual and expected piece hash mismatch")
 		return

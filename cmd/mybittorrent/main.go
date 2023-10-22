@@ -120,8 +120,6 @@ func main() {
 			Port:     uint16(port),
 		}
 
-		// ih, _ := t.InfoHash()
-		// res, conn, err := peer.PerformHandshake(string(ih))
 		pc, err := conn.EstablishConnection(torrent.LocalPeerID, peer, t, logger)
 		defer pc.Close()
 		if err != nil {
