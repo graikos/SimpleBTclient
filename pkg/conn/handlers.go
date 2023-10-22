@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"github.com/codecrafters-io/bittorrent-starter-go/pkg/torrent"
+	"github.com/codecrafters-io/bittorrent-starter-go/pkg/util"
 )
 
 const blockSize int = 16 * 1024
@@ -34,18 +35,20 @@ func (pc *PeerConn) produceInterested(e *event) error {
 		return err
 	}
 
-	noOfPieces := int((tLen + pieceLen - 1) / pieceLen)
+	curPieceLen = util.GetLengthForIdx(tLen, pieceLen, currentIdx)
 
-	// if last
-	if currentIdx == noOfPieces-1 {
-		curPieceLen = tLen % pieceLen
-		// but even division
-		if curPieceLen == 0 {
-			curPieceLen = pieceLen
-		}
-	} else {
-		curPieceLen = pieceLen
-	}
+	// noOfPieces := int((tLen + pieceLen - 1) / pieceLen)
+
+	// // if last
+	// if currentIdx == noOfPieces-1 {
+	// 	curPieceLen = tLen % pieceLen
+	// 	// but even division
+	// 	if curPieceLen == 0 {
+	// 		curPieceLen = pieceLen
+	// 	}
+	// } else {
+	// 	curPieceLen = pieceLen
+	// }
 
 	pc.currentPiece = torrent.NewPiece(curPieceLen, pc.storage, currentIdx)
 	pc.logger.Debug("This is the current Piece:", pc.currentPiece.Index(), pc.currentPiece.Length(), pc.storage)

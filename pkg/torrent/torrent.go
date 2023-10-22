@@ -13,8 +13,11 @@ import (
 type Torrent interface {
 	InfoHash() ([]byte, error)
 	Announce() string
+	// Returns total length of file
 	Length() (int, error)
+	// Returns piece length
 	PieceLength() (int, error)
+	// Returns a slice of byte slices, each one containing the piece hash
 	Pieces() ([][]byte, error)
 }
 

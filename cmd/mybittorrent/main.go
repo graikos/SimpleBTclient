@@ -154,6 +154,25 @@ func main() {
 		}
 		logger.Printf("Piece %d downloaded to %s.\n", pieceIndex, *savePath)
 
+	case "download":
+		fileCmd := flag.NewFlagSet("download", flag.ExitOnError)
+		savePath := fileCmd.String("o", "", "Sets the output path for the downloaded file")
+
+		fileCmd.Parse(os.Args[2:])
+		if len(fileCmd.Args()) != 1 {
+			fmt.Println("Invalid number of arguments provided")
+			os.Exit(1)
+		}
+		torrentFilePath := fileCmd.Arg(0)
+
+		downloadService := services.NewDownloadFileService()
+
+		if err := downloadService.DownloadFile(torrentFilePath, *savePath); err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+		logger.Printf("Downloaded %s to %s\n", torrentFilePath, *savePath)
+
 	default:
 		fmt.Println("Unknown command: " + command)
 		os.Exit(1)
